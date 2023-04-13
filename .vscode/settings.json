@@ -1,0 +1,5 @@
+{
+    "rust-analyzer.showUnlinkedFileNotification": false,
+    "git.ignoreLimitWarning": true,
+    "rust-analyzer.files.excludeDirs": ["./java_process"]
+}

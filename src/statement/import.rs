@@ -25,7 +25,7 @@ impl Parse for Import {
                 }
                 
                 if !input.peek(Token![.]) {
-                    break Err(syn::Error::new(Span::call_site().into(), "parse import statement error."));
+                    break Err(syn::Error::new(Span::mixed_site().into(), "parse import statement error."));
                 }
 
                 input.parse::<Token![.]>()?;
@@ -43,6 +43,7 @@ impl Import {
         let name = self.item.clone();
         quote! {
             #[::jvm_bindgen::path(#(#path),*)]
+            #[derive(Debug)]
             struct #name;
         }.into()
     }

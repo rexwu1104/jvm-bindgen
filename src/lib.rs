@@ -1,38 +1,48 @@
 #![feature(const_io_structs)]
 #![feature(const_result_drop)]
 #![feature(const_option)]
+#![feature(const_mut_refs)]
 
 mod statement;
-mod resolve;
-mod wrapper;
+mod structs;
+mod build_init;
 
+use build_init::init;
 use proc_macro::TokenStream;
-use statement::Imports;
-use wrapper::ZipWrapper;
+use quote::{quote, ToTokens};
+use statement::{Imports, Package};
+
+type TokenStream2 = quote::__private::TokenStream;
+
+const _: () = {
+    init();
+};
 
 #[proc_macro]
 pub fn jimport(statements: TokenStream) -> TokenStream {
     syn::parse_macro_input!(statements as Imports).resolve()
 }
 
-#[cfg(windows)]
-const JAVA_LIB: &str = concat!(env!("JAVA_HOME"), "lib\\");
-
-const fn read_zip<'a>() -> ZipWrapper<'a> {
-    ZipWrapper::new()
-}
-
-static mut ZIP_FILE_CONTENT: ZipWrapper = read_zip();
-
 #[proc_macro_attribute]
 pub fn path(attribute: TokenStream, item: TokenStream) -> TokenStream {
-    println!("{JAVA_LIB} {attribute}");
-    unsafe {
-        if ZIP_FILE_CONTENT.is_not_load() {
-            ZIP_FILE_CONTENT.load().unwrap();
-        }
-        
-        println!("{}", String::from_utf8_lossy(&ZIP_FILE_CONTENT.by_name("System.java".to_string()).compressed_data));
-        item
-    }
+    let package = syn::parse_macro_input!(attribute as Package);
+    let tokens = TokenStream2::from(item.clone());
+    let item_struct: syn::ItemStruct = syn::parse_macro_input!(item);
+
+    let package_path = [
+        env!("process_dir").into(),
+        package.path.clone(),
+        [item_struct.ident.to_string(), String::from(".rs")].concat()
+    ].join("\\");
+
+    quote! {
+        include!(#package_path);
+        #tokens
+    }.into()
+}
+
+#[proc_macro]
+pub fn parse_java(tokentree: TokenStream) -> TokenStream {
+    // println!("{}", tokentree.to_string());
+    TokenStream::new()
 }
